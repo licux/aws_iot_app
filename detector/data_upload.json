@@ -1,0 +1,203 @@
+{
+    "detectorModelDefinition": {
+        "states": [
+            {
+                "stateName": "sleep",
+                "onInput": {
+                    "events": [],
+                    "transitionEvents": [
+                        {
+                            "eventName": "wakeup",
+                            "condition": "$input.trigger.trigger > 0 ",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{ \\\"command\\\":\\\"transfer_wakeup\\\", \\\"value\\\": 0 }'",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ],
+                            "nextState": "waiting"
+                        }
+                    ]
+                },
+                "onEnter": {
+                    "events": [
+                        {
+                            "eventName": "publish",
+                            "condition": "true",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{ \\\"command\\\": \\\"enter_sleep\\\", \\\"value\\\":0 }'",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "onExit": {
+                    "events": []
+                }
+            },
+            {
+                "stateName": "waiting",
+                "onInput": {
+                    "events": [],
+                    "transitionEvents": [
+                        {
+                            "eventName": "timeout",
+                            "condition": "timeout(\"waiting_timer\")",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{\\\"command\\\":\\\"transfer_timeout\\\", \\\"value\\\": 0}'",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ],
+                            "nextState": "sleep"
+                        },
+                        {
+                            "eventName": "recieve",
+                            "condition": "$input.sensor_value.analog_value> 0",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{\\\"command\\\":\\\"transfer_receive\\\", \\\"value\\\": 0 }'",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                },
+                                {
+                                    "setVariable": {
+                                        "variableName": "input_value",
+                                        "value": "$input.sensor_value.analog_value"
+                                    }
+                                },
+                                {
+                                    "clearTimer": {
+                                        "timerName": "waiting_timer"
+                                    }
+                                }
+                            ],
+                            "nextState": "update"
+                        }
+                    ]
+                },
+                "onEnter": {
+                    "events": [
+                        {
+                            "eventName": "start_timer",
+                            "condition": "true",
+                            "actions": [
+                                {
+                                    "setTimer": {
+                                        "timerName": "waiting_timer",
+                                        "seconds": 60,
+                                        "durationExpression": null
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "eventName": "publish",
+                            "condition": "true",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{ \\\"command\\\": \\\"enter_waiting\\\", \\\"value\\\":0}'",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "onExit": {
+                    "events": []
+                }
+            },
+            {
+                "stateName": "update",
+                "onInput": {
+                    "events": [],
+                    "transitionEvents": [
+                        {
+                            "eventName": "complete",
+                            "condition": "timeout(\"uploading_timer\")",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{ \\\"command\\\": \\\"transfer_complete\\\", \\\"value\\\" : 0}'\n",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ],
+                            "nextState": "sleep"
+                        }
+                    ]
+                },
+                "onEnter": {
+                    "events": [
+                        {
+                            "eventName": "publish",
+                            "condition": "true",
+                            "actions": [
+                                {
+                                    "iotTopicPublish": {
+                                        "mqttTopic": "myIoT/cmd",
+                                        "payload": {
+                                            "contentExpression": "'{ \\\"command\\\": \\\"enter_upload\\\", \\\"value\\\": ${$variable.input_value} }'\n",
+                                            "type": "JSON"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "eventName": "timer_start",
+                            "condition": "true",
+                            "actions": [
+                                {
+                                    "setTimer": {
+                                        "timerName": "uploading_timer",
+                                        "seconds": 60,
+                                        "durationExpression": null
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "onExit": {
+                    "events": []
+                }
+            }
+        ],
+        "initialStateName": "sleep"
+    },
+    "detectorModelDescription": null,
+    "detectorModelName": "data_upload",
+    "evaluationMethod": "BATCH",
+    "key": null,
+    "roleArn": "arn:aws:iam::266960364035:role/service-role/myIot_event_role"
+}

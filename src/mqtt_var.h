@@ -7,6 +7,8 @@
 const char* CLIENTID = "myDevice";
 const char* SUB_TOPIC = "myIoT/cmd";
 const char* PUB_TOPIC = "myIoT/sensor";
+const char* PUB_TOPIC_SENSOR = "myIoT/sensor";
+const char* PUB_TOPIC_TRIGGER = "myIoT/trigger";
 
 const int QOS = 1;
 const long TIMEOUT = 10000L;
